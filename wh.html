@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>مغامرة توصيل الهدايا - أنواع المسارات</title>
+    <!-- استدعاء خط تجوال المناسب للأطفال -->
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@500;700;900&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS للتنسيق السريع والمرن -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- مكتبة Three.js للرسوميات ثلاثية الأبعاد -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- مكتبة Canvas Confetti للاحتفالات -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    
+    <style>
+        * {
+            font-family: 'Tajawal', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #87CEEB;
+        }
+        #game-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+        .ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .interactive {
+            pointer-events: auto;
+        }
+        /* تصميم أزرار التحكم بشكل فقاعي جذاب للأطفال */
+        .control-btn {
+            background: linear-gradient(180deg, #FF9800 0%, #F57C00 100%);
+            border: 4px solid #FFF;
+            box-shadow: 0 8px 0 #E65100, 0 12px 20px rgba(0,0,0,0.35);
+            transition: all 0.08s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 1.5rem;
+            cursor: pointer;
+            color: white;
+            font-size: 2.2rem;
+        }
+        .control-btn:active, .control-btn.active-press {
+            transform: translateY(6px);
+            box-shadow: 0 2px 0 #E65100, 0 4px 10px rgba(0,0,0,0.3);
+            background: linear-gradient(180deg, #FFA726 0%, #FB8C00 100%);
+        }
+        .control-btn-up {
+            background: linear-gradient(180deg, #4CAF50 0%, #388E3C 100%);
+            box-shadow: 0 8px 0 #1B5E20, 0 12px 20px rgba(0,0,0,0.35);
+        }
+        .control-btn-up:active, .control-btn-up.active-press {
+            box-shadow: 0 2px 0 #1B5E20, 0 4px 10px rgba(0,0,0,0.3);
+            background: linear-gradient(180deg, #66BB6A 0%, #43A047 100%);
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-4px); }
+        }
+        .floating-banner {
+            animation: float 3s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- حاوية الرسم ثلاثي الأبعاد -->
+    <div id="game-canvas"></div>
+
+    <!-- واجهة المستخدم العلوية والسفلية -->
+    <div class="ui-layer p-2 md:p-4">
+        
+        <!-- الشريط العلوي المدمج: اسم المسار الحالي فقط وتحته التعليمات بحجم صغير -->
+        <div class="relative flex justify-center items-start w-full pt-1">
+            
+            <!-- لافتة مدمجة لاسم المسار الحالي والتعليمات -->
+            <div class="floating-banner bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 border-2 border-white px-4 py-1.5 rounded-2xl shadow-lg text-center max-w-[82%] sm:max-w-md">
+                <h1 id="level-title" class="text-base md:text-2xl font-black text-red-700 leading-tight">
+                    المسار المستقيم ⬆️
+                </h1>
+                <p class="text-[11px] md:text-sm font-bold text-gray-800 leading-tight mt-0.5">
+                    🛵 استخدم الأسهم لتحريك الموتوسيكل وتوصيل الهدية! 🎁
+                </p>
+            </div>
+
+            <!-- زر الصوت في الزاوية لا يأخذ حيزاً من المنتصف -->
+            <button onclick="toggleSound()" id="sound-btn" class="interactive absolute left-1 top-1 p-1.5 md:p-2 rounded-xl bg-amber-400 hover:bg-amber-500 text-white font-bold border-2 border-white shadow-md text-sm md:text-base" title="تشغيل/كتم الصوت">
+                🔊
+            </button>
+        </div>
+
+        <!-- منطقة التحكم السفلية (الأسهم) -->
+        <div class="flex justify-center items-end pb-2 md:pb-5 w-full">
+            <div class="interactive bg-white/40 backdrop-blur-sm p-2.5 md:p-3.5 rounded-3xl border-3 border-white/80 shadow-xl">
+                <div class="grid grid-cols-3 gap-2 w-48 md:w-60">
+                    <div></div>
+                    <button id="btn-up" class="control-btn control-btn-up h-14 md:h-18 text-2xl md:text-3xl" aria-label="أمام">
+                        ⬆️
+                    </button>
+                    <div></div>
+                    
+                    <button id="btn-right" class="control-btn h-14 md:h-18 text-2xl md:text-3xl" aria-label="يمين">
+                        ➡️
+                    </button>
+                    <button id="btn-down" class="control-btn h-14 md:h-18 text-2xl md:text-3xl" aria-label="خلف">
+                        ⬇️
+                    </button>
+                    <button id="btn-left" class="control-btn h-14 md:h-18 text-2xl md:text-3xl" aria-label="يسار">
+                        ⬅️
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة الاحتفال عند الفوز -->
+    <div id="win-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+        <div class="interactive bg-gradient-to-b from-yellow-100 to-white border-8 border-yellow-400 rounded-[2.5rem] p-6 md:p-8 max-w-md w-full text-center shadow-2xl transform transition-all scale-100">
+            <div class="text-6xl md:text-7xl mb-3 animate-bounce">
+                🥳🎉🎁
+            </div>
+            <div class="text-4xl mb-2">
+                ⭐⭐⭐
+            </div>
+            <h2 id="win-title" class="text-2xl md:text-4xl font-black text-green-600 mb-2">
+                أحسنت يا بطل!
+            </h2>
+            <p id="win-desc" class="text-lg md:text-xl font-bold text-gray-700 mb-4">
+                لقد وصلت الهدية بنجاح عبر <span id="win-path-name" class="text-red-600 font-black">المسار المستقيم</span>!
+            </p>
+
+            <!-- ملخص تعليمي يظهر فقط بعد إنهاء المسار الثالث والأخير -->
+            <div id="final-summary" class="hidden bg-amber-50 border-4 border-amber-300 rounded-2xl p-3 md:p-4 mb-5 text-center shadow-inner">
+                <p class="text-base md:text-lg font-black text-amber-900 mb-2">
+                    🌟 تعلّمنا اليوم أن هناك 3 أنواع من المسارات:
+                </p>
+                <div class="flex flex-col gap-2 text-sm md:text-base font-black">
+                    <div class="bg-blue-100 text-blue-800 py-1.5 px-3 rounded-xl border-2 border-blue-300">
+                        1️⃣ المسار المستقيم ⬆️
+                    </div>
+                    <div class="bg-purple-100 text-purple-800 py-1.5 px-3 rounded-xl border-2 border-purple-300">
+                        2️⃣ المسار المنحني ↪️
+                    </div>
+                    <div class="bg-rose-100 text-rose-800 py-1.5 px-3 rounded-xl border-2 border-rose-300">
+                        3️⃣ المسار المتعرج ⚡
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-3 justify-center">
+                <button onclick="replayLevel()" class="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-black rounded-2xl text-lg shadow-[0_5px_0_#1D4ED8] active:translate-y-1 active:shadow-none transition-all">
+                    🔄 العب مرة أخرى
+                </button>
+                <button id="next-level-btn" onclick="nextLevel()" class="px-6 py-3 bg-green-500 hover:bg-green-600 text-white font-black rounded-2xl text-lg shadow-[0_5px_0_#15803D] active:translate-y-1 active:shadow-none transition-all">
+                    المرحلة التالية ⬅️
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // 1. نظام المؤثرات الصوتية التفاعلية (Web Audio API)
+        // ==========================================
+        let soundEnabled = true;
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContext();
+            }
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            document.getElementById('sound-btn').innerText = soundEnabled ? '🔊' : '🔇';
+            if (soundEnabled) playBeep(523.25, 0.1, 'sine');
+        }
+
+        function playBeep(freq, duration, type = 'sine', delay = 0) {
+            if (!soundEnabled) return;
+            try {
+                initAudio();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime + delay);
+                
+                gain.gain.setValueAtTime(0.12, audioCtx.currentTime + delay);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + delay + duration);
+                
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                
+                osc.start(audioCtx.currentTime + delay);
+                osc.stop(audioCtx.currentTime + delay + duration);
+            } catch (e) {
+                // تجاهل أخطاء الصوت في حال عدم تفاعل المستخدم بعد
+            }
+        }
+
+        function playWinSound() {
+            // نغمة احتفالية مبهجة
+            const notes = [523.25, 659.25, 783.99, 1046.50];
+            notes.forEach((note, index) => {
+                playBeep(note, 0.22, 'triangle', index * 0.14);
+            });
+        }
+
+        function playWallBumpSound() {
+            playBeep(150, 0.08, 'sawtooth');
+        }
+
+        // ==========================================
+        // 2. بيانات المراحل الثلاث (المسارات)
+        // ==========================================
+        const levels = [
+            {
+                id: 0,
+                name: "المسار المستقيم",
+                signText: "مسار مستقيم ⬆️",
+                signColor: "#2563EB",
+                roadHalfWidth: 3.3,
+                length: 34,
+                // المسار المستقيم: الإحداثي السيني دائماً صفر
+                getCenterX: (z) => 0
+            },
+            {
+                id: 1,
+                name: "المسار المنحني",
+                signText: "مسار منحني ↪️",
+                signColor: "#9333EA",
+                roadHalfWidth: 3.5,
+                length: 36,
+                // المسار المنحني: قوس ناعم جداً وبسيط للطفل
+                getCenterX: (z) => {
+                    const t = Math.max(0, Math.min(1, -z / 36));
+                    return Math.sin(t * Math.PI) * 7.5;
+                }
+            },
+            {
+                id: 2,
+                name: "المسار المتعرج",
+                signText: "مسار متعرج ⚡",
+                signColor: "#E11D48",
+                roadHalfWidth: 3.6,
+                length: 40,
+                // المسار المتعرج: انعطافات خفيفة وواضحة على شكل Z
+                getCenterX: (z) => {
+                    const t = Math.max(0, Math.min(1, -z / 40));
+                    if (t < 0.25) {
+                        return (t / 0.25) * 5.2;
+                    } else if (t < 0.75) {
+                        return 5.2 - ((t - 0.25) / 0.5) * 10.4;
+                    } else {
+                        return -5.2 + ((t - 0.75) / 0.25) * 5.2;
+                    }
+                }
+            }
+        ];
+
+        let currentLevelIndex = 0;
+        let isLevelCompleted = false;
+
+        // ==========================================
+        // 3. إعداد المشهد ثلاثي الأبعاد (Three.js)
+        // ==========================================
+        let scene, camera, renderer;
+        let levelGroup;
+        let motorcycleGroup, frontWheel, backWheel, deliveryGiftOnBike;
+        let goalBoxGroup, goalBoxLid, surpriseGiftGroup;
+        let confetti3DParticles = [];
+
+        // متغيرات حركة الموتوسيكل
+        const bikeState = {
+            x: 0,
+            z: 0,
+            angle: 0, // 0 يعني متجه للأمام نحو -Z
+            speed: 0
+        };
+
+        // حالة أزرار التحكم
+        const controls = {
+            up: false,
+            down: false,
+            left: false,
+            right: false
+        };
+
+        function initThreeJS() {
+            const container = document.getElementById('game-canvas');
+            
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x87CEEB); // لون سماء مشرق
+            scene.fog = new THREE.FogExp2(0x87CEEB, 0.012);
+
+            camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 200);
+            
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+
+            // الإضاءة المبهجة
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.75);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0xfffbeb, 0.9);
+            dirLight.position.set(20, 35, 25);
+            dirLight.castShadow = true;
+            dirLight.shadow.mapSize.width = 1024;
+            dirLight.shadow.mapSize.height = 1024;
+            dirLight.shadow.camera.near = 1;
+            dirLight.shadow.camera.far = 120;
+            const d = 35;
+            dirLight.shadow.camera.left = -d;
+            dirLight.shadow.camera.right = d;
+            dirLight.shadow.camera.top = d;
+            dirLight.shadow.camera.bottom = -d;
+            scene.add(dirLight);
+
+            // أرضية خضراء واسعة (عشب الحديقة)
+            const groundGeo = new THREE.PlaneGeometry(300, 300);
+            const groundMat = new THREE.MeshLambertMaterial({ color: 0x7CB342 });
+            const ground = new THREE.Mesh(groundGeo, groundMat);
+            ground.rotation.x = -Math.PI / 2;
+            ground.position.y = -0.05;
+            ground.receiveShadow = true;
+            scene.add(ground);
+
+            // إنشاء مجموعة عناصر المرحلة
+            levelGroup = new THREE.Group();
+            scene.add(levelGroup);
+
+            // إنشاء الموتوسيكل ثلاثي الأبعاد
+            createMotorcycle();
+
+            // بناء المرحلة الأولى
+            buildLevel(currentLevelIndex);
+
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        // ==========================================
+        // 4. تصميم الموتوسيكل ثلاثي الأبعاد والهدية
+        // ==========================================
+        function createMotorcycle() {
+            motorcycleGroup = new THREE.Group();
+
+            // خامات الموتوسيكل
+            const redMat = new THREE.MeshStandardMaterial({ color: 0xFF3D00, roughness: 0.3 });
+            const yellowMat = new THREE.MeshStandardMaterial({ color: 0xFFD600, roughness: 0.3 });
+            const tireMat = new THREE.MeshStandardMaterial({ color: 0x263238, roughness: 0.8 });
+            const chromeMat = new THREE.MeshStandardMaterial({ color: 0xECEFF1, metalness: 0.6, roughness: 0.2 });
+            const blueSuitMat = new THREE.MeshStandardMaterial({ color: 0x1E88E5, roughness: 0.4 });
+            const skinMat = new THREE.MeshStandardMaterial({ color: 0xFFCCBC, roughness: 0.5 });
+
+            // الإطار الخلفي والأمامي
+            const wheelGeo = new THREE.CylinderGeometry(0.48, 0.48, 0.35, 20);
+            wheelGeo.rotateZ(Math.PI / 2);
+
+            backWheel = new THREE.Mesh(wheelGeo, tireMat);
+            backWheel.position.set(0, 0.48, 0.75);
+            backWheel.castShadow = true;
+            motorcycleGroup.add(backWheel);
+
+            frontWheel = new THREE.Mesh(wheelGeo, tireMat);
+            frontWheel.position.set(0, 0.48, -0.85);
+            frontWheel.castShadow = true;
+            motorcycleGroup.add(frontWheel);
+
+            // جسم الموتوسيكل الأساسي (سكوتر لطيف)
+            const bodyGeo = new THREE.BoxGeometry(0.75, 0.65, 1.8);
+            const bodyMesh = new THREE.Mesh(bodyGeo, redMat);
+            bodyMesh.position.set(0, 0.75, 0);
+            bodyMesh.castShadow = true;
+            motorcycleGroup.add(bodyMesh);
+
+            // مقدمة الموتوسيكل والمصباح
+            const frontShieldGeo = new THREE.BoxGeometry(0.65, 1.1, 0.35);
+            const frontShield = new THREE.Mesh(frontShieldGeo, redMat);
+            frontShield.position.set(0, 1.15, -0.7);
+            frontShield.rotation.x = 0.2;
+            frontShield.castShadow = true;
+            motorcycleGroup.add(frontShield);
+
+            // المصباح الأمامي المضيء
+            const lightGeo = new THREE.SphereGeometry(0.22, 16, 16);
+            const lightMesh = new THREE.Mesh(lightGeo, yellowMat);
+            lightMesh.position.set(0, 1.45, -0.88);
+            motorcycleGroup.add(lightMesh);
+
+            // المقود (الجادون)
+            const handleGeo = new THREE.CylinderGeometry(0.06, 0.06, 1.25, 12);
+            handleGeo.rotateZ(Math.PI / 2);
+            const handleMesh = new THREE.Mesh(handleGeo, chromeMat);
+            handleMesh.position.set(0, 1.6, -0.65);
+            motorcycleGroup.add(handleMesh);
+
+            // شخصية السائق اللطيفة
+            const torsoGeo = new THREE.CylinderGeometry(0.28, 0.34, 0.75, 16);
+            const torso = new THREE.Mesh(torsoGeo, blueSuitMat);
+            torso.position.set(0, 1.4, -0.05);
+            torso.castShadow = true;
+            motorcycleGroup.add(torso);
+
+            const headGeo = new THREE.SphereGeometry(0.32, 16, 16);
+            const head = new THREE.Mesh(headGeo, skinMat);
+            head.position.set(0, 2.0, -0.05);
+            motorcycleGroup.add(head);
+
+            // خوذة الأمان الصفراء للسائق
+            const helmetGeo = new THREE.SphereGeometry(0.36, 16, 16, 0, Math.PI * 2, 0, Math.PI * 0.65);
+            const helmet = new THREE.Mesh(helmetGeo, yellowMat);
+            helmet.position.set(0, 2.04, -0.05);
+            helmet.castShadow = true;
+            motorcycleGroup.add(helmet);
+
+            // صندوق توصيل الهدية خلف السائق
+            deliveryGiftOnBike = createGiftMesh(0.75, 0xE91E63, 0xFFEB3B);
+            deliveryGiftOnBike.position.set(0, 1.45, 0.65);
+            motorcycleGroup.add(deliveryGiftOnBike);
+
+            scene.add(motorcycleGroup);
+        }
+
+        // دالة مساعدة لصنع صندوق هدية بشريط زينة
+        function createGiftMesh(size, boxColor, ribbonColor) {
+            const giftGroup = new THREE.Group();
+            const boxMat = new THREE.MeshStandardMaterial({ color: boxColor, roughness: 0.3 });
+            const ribbonMat = new THREE.MeshStandardMaterial({ color: ribbonColor, roughness: 0.2 });
+
+            const box = new THREE.Mesh(new THREE.BoxGeometry(size, size, size), boxMat);
+            box.castShadow = true;
+            giftGroup.add(box);
+
+            const r1 = new THREE.Mesh(new THREE.BoxGeometry(size * 1.04, size * 1.04, size * 0.22), ribbonMat);
+            const r2 = new THREE.Mesh(new THREE.BoxGeometry(size * 0.22, size * 1.04, size * 1.04), ribbonMat);
+            giftGroup.add(r1, r2);
+
+            return giftGroup;
+        }
+
+        // ==========================================
+        // 5. بناء اللافتات ثلاثية الأبعاد بجانب المسار
+        // ==========================================
+        function create3DSignboard(text, bgColor) {
+            const signGroup = new THREE.Group();
+
+            // عمود اللافتة
+            const poleGeo = new THREE.CylinderGeometry(0.15, 0.15, 3.2, 12);
+            const poleMat = new THREE.MeshStandardMaterial({ color: 0x8D6E63 });
+            const pole = new THREE.Mesh(poleGeo, poleMat);
+            pole.position.y = 1.6;
+            pole.castShadow = true;
+            signGroup.add(pole);
+
+            // رسم النص العربي على Canvas لتحويله إلى Texture واضحة
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+
+            // خلفية اللوحة
+            ctx.fillStyle = bgColor;
+            ctx.beginPath();
+            ctx.roundRect(10, 10, 492, 236, 40);
+            ctx.fill();
+
+            // إطار أبيض سميك
+            ctx.lineWidth = 14;
+            ctx.strokeStyle = '#FFFFFF';
+            ctx.stroke();
+
+            // كتابة اسم المسار
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = '900 68px Tajawal, Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(text, 256, 130);
+
+            const texture = new THREE.CanvasTexture(canvas);
+            const boardGeo = new THREE.BoxGeometry(4.6, 2.3, 0.2);
+            const boardMat = new THREE.MeshBasicMaterial({ map: texture });
+            const boardSideMat = new THREE.MeshStandardMaterial({ color: 0xFFFFFF });
+
+            const board = new THREE.Mesh(boardGeo, [
+                boardSideMat, boardSideMat, boardSideMat, boardSideMat, boardMat, boardMat
+            ]);
+            board.position.y = 3.4;
+            board.castShadow = true;
+            signGroup.add(board);
+
+            return signGroup;
+        }
+
+        // ==========================================
+        // 6. بناء صندوق النهاية السحري (الهدف)
+        // ==========================================
+        function createGoalChest(x, z) {
+            goalBoxGroup = new THREE.Group();
+            goalBoxGroup.position.set(x, 0, z);
+
+            const chestBaseMat = new THREE.MeshStandardMaterial({ color: 0xFFB300, roughness: 0.3 });
+            const chestTrimMat = new THREE.MeshStandardMaterial({ color: 0xD32F2F, roughness: 0.3 });
+
+            // قاعدة الصندوق
+            const baseGeo = new THREE.BoxGeometry(2.8, 1.5, 2.0);
+            const baseMesh = new THREE.Mesh(baseGeo, chestBaseMat);
+            baseMesh.position.y = 0.75;
+            baseMesh.castShadow = true;
+            goalBoxGroup.add(baseMesh);
+
+            // شريط أحمر تزييني حول الصندوق
+            const bandGeo = new THREE.BoxGeometry(2.9, 0.35, 2.1);
+            const bandMesh = new THREE.Mesh(bandGeo, chestTrimMat);
+            bandMesh.position.y = 0.8;
+            goalBoxGroup.add(bandMesh);
+
+            // قفل ذهبي في المنتصف
+            const lockGeo = new THREE.BoxGeometry(0.5, 0.6, 0.2);
+            const lockMat = new THREE.MeshStandardMaterial({ color: 0xFFF176, metalness: 0.5 });
+            const lockMesh = new THREE.Mesh(lockGeo, lockMat);
+            lockMesh.position.set(0, 1.3, 1.05);
+            goalBoxGroup.add(lockMesh);
+
+            // غطاء الصندوق القابل للفتح حول محور خلفي
+            goalBoxLid = new THREE.Group();
+            goalBoxLid.position.set(0, 1.5, -1.0); // محور الدوران في الخلف
+
+            const lidGeo = new THREE.BoxGeometry(2.86, 0.6, 2.06);
+            const lidMesh = new THREE.Mesh(lidGeo, chestTrimMat);
+            lidMesh.position.set(0, 0.3, 1.0);
+            lidMesh.castShadow = true;
+            goalBoxLid.add(lidMesh);
+
+            goalBoxGroup.add(goalBoxLid);
+
+            // مفاجأة داخل الصندوق (تظهر وتعلو عند الفتح)
+            surpriseGiftGroup = createGiftMesh(1.2, 0x00E676, 0xFFEB3B);
+            surpriseGiftGroup.position.set(0, 0.8, 0);
+            surpriseGiftGroup.scale.set(0.01, 0.01, 0.01);
+            goalBoxGroup.add(surpriseGiftGroup);
+
+            // قوس احتفالي فوق منطقة النهاية
+            const archPoleGeo = new THREE.CylinderGeometry(0.18, 0.18, 5, 12);
+            const archPoleMat = new THREE.MeshStandardMaterial({ color: 0xFFFFFF });
+            const leftPole = new THREE.Mesh(archPoleGeo, archPoleMat);
+            leftPole.position.set(-3.4, 2.5, 1.8);
+            const rightPole = new THREE.Mesh(archPoleGeo, archPoleMat);
+            rightPole.position.set(3.4, 2.5, 1.8);
+            goalBoxGroup.add(leftPole, rightPole);
+
+            // شريط خط النهاية (شطرنج أبيض وأسود)
+            const checkerCanvas = document.createElement('canvas');
+            checkerCanvas.width = 256;
+            checkerCanvas.height = 64;
+            const cCtx = checkerCanvas.getContext('2d');
+            for (let i = 0; i < 8; i++) {
+                for (let j = 0; j < 2; j++) {
+                    cCtx.fillStyle = (i + j) % 2 === 0 ? '#FFFFFF' : '#212121';
+                    cCtx.fillRect(i * 32, j * 32, 32, 32);
+                }
+            }
+            const checkerTex = new THREE.CanvasTexture(checkerCanvas);
+            const finishLineGeo = new THREE.PlaneGeometry(6.8, 1.4);
+            const finishLineMat = new THREE.MeshBasicMaterial({ map: checkerTex });
+            const finishLine = new THREE.Mesh(finishLineGeo, finishLineMat);
+            finishLine.rotation.x = -Math.PI / 2;
+            finishLine.position.set(0, 0.05, 2.2);
+            goalBoxGroup.add(finishLine);
+
+            levelGroup.add(goalBoxGroup);
+        }
+
+        // ==========================================
+        // 7. بناء المرحلة المختارة (الطريق والأشجار واللافتات)
+        // ==========================================
+        function buildLevel(levelIdx) {
+            // مسح عناصر المرحلة السابقة
+            while (levelGroup.children.length > 0) {
+                levelGroup.remove(levelGroup.children[0]);
+            }
+            confetti3DParticles = [];
+            isLevelCompleted = false;
+            document.getElementById('win-modal').classList.add('hidden');
+
+            const level = levels[levelIdx];
+
+            // تحديث عنوان المسار الحالي فقط في الأعلى
+            document.getElementById('level-title').innerText = level.signText;
+
+            // بناء بلاطات المسار وحواجز الأمان الجانبية
+            const segments = 90;
+            const dz = level.length / segments;
+
+            const roadMat = new THREE.MeshLambertMaterial({ color: 0x546E7A });
+            const stripeMat = new THREE.MeshBasicMaterial({ color: 0xFFF59D });
+            const curbRedMat = new THREE.MeshLambertMaterial({ color: 0xFF5252 });
+            const curbWhiteMat = new THREE.MeshLambertMaterial({ color: 0xFFFFFF });
+
+            for (let i = -3; i <= segments + 3; i++) {
+                const z1 = -i * dz;
+                const z2 = -(i + 1) * dz;
+                const zMid = (z1 + z2) / 2;
+
+                const x1 = level.getCenterX(z1);
+                const x2 = level.getCenterX(z2);
+                const xMid = (x1 + x2) / 2;
+
+                const segAngle = Math.atan2(x2 - x1, z2 - z1); // زاوية ميلان قطعة الطريق
+
+                // بلاطة الأسفلت
+                const segGeo = new THREE.BoxGeometry(level.roadHalfWidth * 2, 0.08, dz * 1.35);
+                const segMesh = new THREE.Mesh(segGeo, roadMat);
+                segMesh.position.set(xMid, 0.02, zMid);
+                segMesh.rotation.y = segAngle - Math.PI;
+                segMesh.receiveShadow = true;
+                levelGroup.add(segMesh);
+
+                // خطوط صفراء في منتصف الطريق لإرشاد الطفل
+                if (i % 3 === 0 && i >= 0 && i < segments - 2) {
+                    const stripeGeo = new THREE.BoxGeometry(0.32, 0.1, dz * 1.4);
+                    const stripeMesh = new THREE.Mesh(stripeGeo, stripeMat);
+                    stripeMesh.position.set(xMid, 0.03, zMid);
+                    stripeMesh.rotation.y = segAngle - Math.PI;
+                    levelGroup.add(stripeMesh);
+                }
+
+                // حواف الطريق الملونة (أحمر وأبيض)
+                const curbMat = i % 2 === 0 ? curbRedMat : curbWhiteMat;
+                const curbGeo = new THREE.BoxGeometry(0.45, 0.32, dz * 1.25);
+
+                const leftCurb = new THREE.Mesh(curbGeo, curbMat);
+                leftCurb.position.set(xMid - level.roadHalfWidth - 0.2, 0.16, zMid);
+                leftCurb.castShadow = true;
+                levelGroup.add(leftCurb);
+
+                const rightCurb = new THREE.Mesh(curbGeo, curbMat);
+                rightCurb.position.set(xMid + level.roadHalfWidth + 0.2, 0.16, zMid);
+                rightCurb.castShadow = true;
+                levelGroup.add(rightCurb);
+            }
+
+            // وضع لافتة واضحة عند بداية المسار ومنتصفه
+            const startSign = create3DSignboard(level.signText, level.signColor);
+            startSign.position.set(level.getCenterX(-3) + level.roadHalfWidth + 2.8, 0, -3);
+            startSign.rotation.y = -0.25;
+            levelGroup.add(startSign);
+
+            const midZ = -level.length * 0.5;
+            const midSign = create3DSignboard(level.signText, level.signColor);
+            midSign.position.set(level.getCenterX(midZ) - level.roadHalfWidth - 2.8, 0, midZ);
+            midSign.rotation.y = 0.25;
+            levelGroup.add(midSign);
+
+            // إضافة أشجار وأزهار كرتونية جميلة على الجانبين
+            for (let z = -2; z > -level.length - 8; z -= 6) {
+                const centerX = level.getCenterX(z);
+                createCartoonTree(centerX - level.roadHalfWidth - 5.5 - Math.random() * 4, z);
+                createCartoonTree(centerX + level.roadHalfWidth + 5.5 + Math.random() * 4, z);
+            }
+
+            // وضع صندوق النهاية في آخر المسار
+            const endZ = -level.length;
+            const endX = level.getCenterX(endZ);
+            createGoalChest(endX, endZ - 1.5);
+
+            // إعادة ضبط موقع الموتوسيكل عند نقطة البداية
+            bikeState.x = level.getCenterX(0);
+            bikeState.z = 0;
+            bikeState.angle = 0;
+            bikeState.speed = 0;
+            deliveryGiftOnBike.visible = true;
+
+            updateMotorcycleTransform();
+        }
+
+        // دالة رسم شجرة كرتونية بسيطة
+        function createCartoonTree(x, z) {
+            const tree = new THREE.Group();
+            tree.position.set(x, 0, z);
+
+            const trunk = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.3, 0.45, 1.6, 10),
+                new THREE.MeshLambertMaterial({ color: 0x795548 })
+            );
+            trunk.position.y = 0.8;
+            trunk.castShadow = true;
+            tree.add(trunk);
+
+            const leavesColors = [0x43A047, 0x66BB6A, 0x2E7D32];
+            const leafColor = leavesColors[Math.floor(Math.random() * leavesColors.length)];
+            const crown = new THREE.Mesh(
+                new THREE.SphereGeometry(1.45, 14, 14),
+                new THREE.MeshLambertMaterial({ color: leafColor })
+            );
+            crown.position.y = 2.4;
+            crown.castShadow = true;
+            tree.add(crown);
+
+            levelGroup.add(tree);
+        }
+
+        // ==========================================
+        // 8. تحديث حركة الموتوسيكل والكاميرا وحدود المسار
+        // ==========================================
+        function updateMotorcycleTransform() {
+            motorcycleGroup.position.set(bikeState.x, 0, bikeState.z);
+            motorcycleGroup.rotation.y = bikeState.angle;
+
+            // متابعة الكاميرا للموتوسيكل بنعومة
+            const targetCamX = bikeState.x * 0.65;
+            const targetCamZ = bikeState.z + 10.5;
+            const targetCamY = 6.8;
+
+            camera.position.x += (targetCamX - camera.position.x) * 0.12;
+            camera.position.z += (targetCamZ - camera.position.z) * 0.12;
+            camera.position.y += (targetCamY - camera.position.y) * 0.12;
+
+            camera.lookAt(bikeState.x * 0.85, 1.2, bikeState.z - 6);
+        }
+
+        function triggerWin() {
+            if (isLevelCompleted) return;
+            isLevelCompleted = true;
+
+            // إخفاء الهدية من على الموتوسيكل لإظهارها داخل الصندوق المفتوح
+            deliveryGiftOnBike.visible = false;
+            playWinSound();
+
+            // إطلاق قصاصات الورق الملونة (Confetti)
+            if (typeof confetti === 'function') {
+                confetti({
+                    particleCount: 100,
+                    spread: 80,
+                    origin: { y: 0.6 }
+                });
+            }
+
+            // إظهار نافذة الفوز بعد لحظات من فتح الصندوق
+            const currentLevel = levels[currentLevelIndex];
+            document.getElementById('win-path-name').innerText = currentLevel.name;
+            
+            const nextBtn = document.getElementById('next-level-btn');
+            const finalSummary = document.getElementById('final-summary');
+            const winTitle = document.getElementById('win-title');
+
+            if (currentLevelIndex < levels.length - 1) {
+                winTitle.innerText = "أحسنت يا بطل!";
+                finalSummary.classList.add('hidden');
+                nextBtn.innerText = "المرحلة التالية ⬅️";
+            } else {
+                winTitle.innerText = "مبروك! أكملت جميع المسارات 🏆";
+                finalSummary.classList.remove('hidden');
+                nextBtn.innerText = "العب من البداية 🏆";
+            }
+
+            setTimeout(() => {
+                document.getElementById('win-modal').classList.remove('hidden');
+            }, 1100);
+        }
+
+        // ==========================================
+        // 9. حلقة التحديث الرئيسية للعبة (Game Loop)
+        // ==========================================
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const level = levels[currentLevelIndex];
+
+            if (!isLevelCompleted) {
+                // سرعة مناسبة وسهلة جداً لأطفال الصف الأول الابتدائي
+                const forwardSpeed = 0.20;
+                const backwardSpeed = 0.12;
+                const turnSpeed = 0.038;
+
+                let moving = false;
+
+                if (controls.up) {
+                    bikeState.z -= Math.cos(bikeState.angle) * forwardSpeed;
+                    bikeState.x -= Math.sin(bikeState.angle) * forwardSpeed;
+                    frontWheel.rotation.x -= 0.15;
+                    backWheel.rotation.x -= 0.15;
+                    moving = true;
+                } else if (controls.down) {
+                    bikeState.z += Math.cos(bikeState.angle) * backwardSpeed;
+                    bikeState.x += Math.sin(bikeState.angle) * backwardSpeed;
+                    frontWheel.rotation.x += 0.1;
+                    backWheel.rotation.x += 0.1;
+                    moving = true;
+                }
+
+                // الانعطاف لليمين واليسار + تحرك جانبي لطيف لمساعدة الطفل حتى لو ضغط السهم وحده
+                if (controls.left) {
+                    bikeState.angle += turnSpeed;
+                    bikeState.x -= 0.08;
+                    if (!moving) {
+                        // تقدم طفيف جداً عند الضغط على يمين/يسار لتسهيل اللعب على الطفل
+                        bikeState.z -= 0.05;
+                    }
+                    motorcycleGroup.rotation.z = 0.12; // ميلان خفيف وطبيعي للموتوسيكل
+                } else if (controls.right) {
+                    bikeState.angle -= turnSpeed;
+                    bikeState.x += 0.08;
+                    if (!moving) {
+                        bikeState.z -= 0.05;
+                    }
+                    motorcycleGroup.rotation.z = -0.12;
+                } else {
+                    motorcycleGroup.rotation.z *= 0.8;
+                    // مساعدة تلقائية خفيفة لإعادة توجيه الموتوسيكل للأمام تدريجياً
+                    bikeState.angle *= 0.96;
+                }
+
+                // تقييد زاوية الدوران حتى لا ينقلب اتجاه الطفل للخلف ويحتار
+                const maxAngle = 0.75;
+                if (bikeState.angle > maxAngle) bikeState.angle = maxAngle;
+                if (bikeState.angle < -maxAngle) bikeState.angle = -maxAngle;
+
+                // عدم السماح بالرجوع خلف نقطة البداية
+                if (bikeState.z > 1.5) bikeState.z = 1.5;
+
+                // إبقاء الموتوسيكل داخل حدود المسار دائماً حتى لا يخرج الطفل ويحبط
+                const roadCenterX = level.getCenterX(bikeState.z);
+                const maxOffset = level.roadHalfWidth - 0.75;
+
+                if (bikeState.x < roadCenterX - maxOffset) {
+                    bikeState.x = roadCenterX - maxOffset;
+                    bikeState.angle *= 0.5; // تصحيح الزاوية عند لمس الحافة
+                } else if (bikeState.x > roadCenterX + maxOffset) {
+                    bikeState.x = roadCenterX + maxOffset;
+                    bikeState.angle *= 0.5;
+                }
+
+                updateMotorcycleTransform();
+
+                // التحقق من الوصول إلى خط النهاية والصندوق
+                if (bikeState.z <= -level.length + 1.2) {
+                    triggerWin();
+                }
+            } else {
+                // أنيميشن فتح الصندوق وظهور الهدية عند الفوز
+                if (goalBoxLid && goalBoxLid.rotation.x > -2.0) {
+                    goalBoxLid.rotation.x -= 0.08;
+                }
+                if (surpriseGiftGroup) {
+                    if (surpriseGiftGroup.scale.x < 1.3) {
+                        surpriseGiftGroup.scale.addScalar(0.05);
+                    }
+                    if (surpriseGiftGroup.position.y < 2.8) {
+                        surpriseGiftGroup.position.y += 0.06;
+                    }
+                    surpriseGiftGroup.rotation.y += 0.06;
+                }
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        // ==========================================
+        // 10. دوال التنقل بين المراحل وأحداث الأزرار
+        // ==========================================
+        function selectLevel(idx) {
+            initAudio();
+            playBeep(600, 0.08, 'sine');
+            currentLevelIndex = idx;
+            buildLevel(currentLevelIndex);
+        }
+
+        function replayLevel() {
+            playBeep(600, 0.08, 'sine');
+            buildLevel(currentLevelIndex);
+        }
+
+        function nextLevel() {
+            playBeep(700, 0.1, 'sine');
+            if (currentLevelIndex < levels.length - 1) {
+                currentLevelIndex++;
+            } else {
+                currentLevelIndex = 0;
+            }
+            buildLevel(currentLevelIndex);
+        }
+
+        function setupControls() {
+            const btnMap = [
+                { id: 'btn-up', key: 'up' },
+                { id: 'btn-down', key: 'down' },
+                { id: 'btn-left', key: 'left' },
+                { id: 'btn-right', key: 'right' }
+            ];
+
+            btnMap.forEach(item => {
+                const btn = document.getElementById(item.id);
+
+                const startPress = (e) => {
+                    e.preventDefault();
+                    initAudio();
+                    controls[item.key] = true;
+                    btn.classList.add('active-press');
+                };
+
+                const endPress = (e) => {
+                    e.preventDefault();
+                    controls[item.key] = false;
+                    btn.classList.remove('active-press');
+                };
+
+                // دعم الماوس واللمس للشاشات الذكية والأجهزة اللوحية
+                btn.addEventListener('mousedown', startPress);
+                btn.addEventListener('mouseup', endPress);
+                btn.addEventListener('mouseleave', endPress);
+
+                btn.addEventListener('touchstart', startPress, { passive: false });
+                btn.addEventListener('touchend', endPress, { passive: false });
+                btn.addEventListener('touchcancel', endPress, { passive: false });
+            });
+
+            // دعم لوحة المفاتيح (الأسهم)
+            window.addEventListener('keydown', (e) => {
+                initAudio();
+                if (e.key === 'ArrowUp' || e.key === 'w') {
+                    controls.up = true;
+                    document.getElementById('btn-up').classList.add('active-press');
+                }
+                if (e.key === 'ArrowDown' || e.key === 's') {
+                    controls.down = true;
+                    document.getElementById('btn-down').classList.add('active-press');
+                }
+                if (e.key === 'ArrowLeft' || e.key === 'a') {
+                    controls.left = true;
+                    document.getElementById('btn-left').classList.add('active-press');
+                }
+                if (e.key === 'ArrowRight' || e.key === 'd') {
+                    controls.right = true;
+                    document.getElementById('btn-right').classList.add('active-press');
+                }
+            });
+
+            window.addEventListener('keyup', (e) => {
+                if (e.key === 'ArrowUp' || e.key === 'w') {
+                    controls.up = false;
+                    document.getElementById('btn-up').classList.remove('active-press');
+                }
+                if (e.key === 'ArrowDown' || e.key === 's') {
+                    controls.down = false;
+                    document.getElementById('btn-down').classList.remove('active-press');
+                }
+                if (e.key === 'ArrowLeft' || e.key === 'a') {
+                    controls.left = false;
+                    document.getElementById('btn-left').classList.remove('active-press');
+                }
+                if (e.key === 'ArrowRight' || e.key === 'd') {
+                    controls.right = false;
+                    document.getElementById('btn-right').classList.remove('active-press');
+                }
+            });
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // تشغيل اللعبة فور تحميل الصفحة
+        window.onload = function () {
+            initThreeJS();
+            setupControls();
+            animate();
+        };
+    </script>
+</body>
+</html>
